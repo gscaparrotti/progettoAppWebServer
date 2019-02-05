@@ -1,12 +1,14 @@
 package application.controllers;
 
+import application.model.AuthData;
 import application.model.User;
 import application.model.UserRepository;
 import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 import java.util.Optional;
 
 @CrossOrigin
@@ -14,28 +16,33 @@ import java.util.Optional;
 @RequestMapping({"/api"})
 public class MainController {
 
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
     @Autowired
-    UserRepository userRepository;
+    public MainController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @PostMapping(path = {"/newUser"})
-    public @ResponseBody boolean newUser(@RequestBody Map<String, String> JSONUser) {
-        final User newUser = new User();
-        newUser.setCodicefiscale(JSONUser.get("codicefiscale"));
-        newUser.setNome(JSONUser.get("nome"));
-        newUser.setCognome(JSONUser.get("cognome"));
-        newUser.setEmail(JSONUser.get("email"));
-        newUser.setPassword(JSONUser.get("password"));
+    public @ResponseBody boolean newUser(@RequestBody String user) {
+        final User newUser = new Gson().fromJson(user, User.class);
+        newUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
         userRepository.save(newUser);
-        return userRepository.existsById(JSONUser.get("codicefiscale"));
+        return userRepository.existsById(newUser.getCodicefiscale());
     }
 
     @PostMapping("/login")
-    public boolean login(@RequestBody Map<String, String> JSONLogin) {
-        return true;
+    public boolean login(@RequestBody String login) {
+        AuthData authData = new Gson().fromJson(login, AuthData.class);
+        Optional<User> user = userRepository.findById(authData.getCodicefiscale());
+        return user.isPresent() && passwordEncoder.matches(authData.getPassword(), user.get().getPassword());
     }
 
     @GetMapping("/test")
-    public String test() {
-        return new Gson().toJson("test successful");
+    @PreAuthorize("#codicefiscale == authentication.principal.username")
+    public String test(@RequestParam String codicefiscale) {
+        return new Gson().toJson("test successful for user " + codicefiscale);
     }
 }
