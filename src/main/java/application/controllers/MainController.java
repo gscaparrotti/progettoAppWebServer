@@ -29,6 +29,9 @@ public class MainController {
     public @ResponseBody boolean newUser(@RequestBody String user) {
         final User newUser = new Gson().fromJson(user, User.class);
         newUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
+        if (userRepository.existsById(newUser.getCodicefiscale())) {
+            return false;
+        }
         userRepository.save(newUser);
         return userRepository.existsById(newUser.getCodicefiscale());
     }
