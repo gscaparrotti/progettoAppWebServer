@@ -25,7 +25,7 @@ public class MainController {
         this.passwordEncoder = passwordEncoder;
     }
 
-    @PostMapping(path = {"/newUser"})
+    @PostMapping("/newUser")
     public @ResponseBody boolean newUser(@RequestBody String user) {
         final User newUser = new Gson().fromJson(user, User.class);
         newUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
@@ -34,6 +34,11 @@ public class MainController {
         }
         userRepository.save(newUser);
         return userRepository.existsById(newUser.getCodicefiscale());
+    }
+
+    @GetMapping("/getUserInfo")
+    public @ResponseBody String getUserInfo(@RequestParam String codicefiscale) {
+        return new Gson().toJson(userRepository.findById(codicefiscale).orElse(null));
     }
 
     @PostMapping("/login")
