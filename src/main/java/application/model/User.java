@@ -1,6 +1,7 @@
 package application.model;
 
 import javax.persistence.*;
+import java.util.Set;
 
 @Entity
 public class User {
@@ -12,6 +13,8 @@ public class User {
     private String cognome;
     private String email;
     private String password;
+    @OneToMany(mappedBy = "user")
+    private Set<LegalAssistance> requiredLegalAssistance;
 
     public String getCodicefiscale() {
         return codicefiscale;
@@ -51,5 +54,13 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public Set<LegalAssistance> getRequiredLegalAssistance() {
+        return requiredLegalAssistance;
+    }
+
+    public void setRequiredLegalAssistance(Set<LegalAssistance> requiredLegalAssistance) {
+        this.requiredLegalAssistance = requiredLegalAssistance;
     }
 }
