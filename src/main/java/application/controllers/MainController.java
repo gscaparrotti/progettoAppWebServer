@@ -1,15 +1,18 @@
 package application.controllers;
 
-import application.model.AuthData;
-import application.model.User;
-import application.model.UserRepository;
+import application.authentication.AuthData;
+import application.entities.*;
+import application.repositories.DrunkDrivingRepository;
+import application.repositories.UserRepository;
 import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Date;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @CrossOrigin
 @RestController
@@ -18,10 +21,13 @@ public class MainController {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final DrunkDrivingRepository drunkDrivingRepository;
 
     @Autowired
-    public MainController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public MainController(UserRepository userRepository, DrunkDrivingRepository drunkDrivingRepository,
+                          PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.drunkDrivingRepository = drunkDrivingRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -43,9 +49,23 @@ public class MainController {
 
     @PostMapping("/login")
     public boolean login(@RequestBody String login) {
-        AuthData authData = new Gson().fromJson(login, AuthData.class);
-        Optional<User> user = userRepository.findById(authData.getCodicefiscale());
+        final AuthData authData = new Gson().fromJson(login, AuthData.class);
+        final Optional<User> user = userRepository.findById(authData.getCodicefiscale());
         return user.isPresent() && passwordEncoder.matches(authData.getPassword(), user.get().getPassword());
+    }
+
+    @PostMapping("/drunkDriving/{user}")
+    @PreAuthorize("#user == authentication.principal.username")
+    public boolean drunkDriving(@PathVariable String user, @RequestBody String jsonData) {
+        final AtomicBoolean success = new AtomicBoolean(false);
+        userRepository.findById(user).ifPresent(foundUser -> {
+            final DrunkDriving drunkDriving = new Gson().fromJson(jsonData, DrunkDriving.class);
+            drunkDriving.setRequestDate(new Date());
+            drunkDriving.setUser(foundUser);
+            drunkDrivingRepository.save(drunkDriving);
+            success.set(true);
+        });
+        return success.get();
     }
 
     @GetMapping("/test")
