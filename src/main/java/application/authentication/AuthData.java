@@ -1,4 +1,4 @@
-package application.model;
+package application.authentication;
 
 public class AuthData {
     private final String codicefiscale;

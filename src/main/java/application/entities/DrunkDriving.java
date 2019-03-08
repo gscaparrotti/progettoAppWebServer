@@ -1,22 +1,22 @@
-package application.model;
+package application.entities;
 
 import javax.persistence.Entity;
 
 @Entity
 public class DrunkDriving extends LegalAssistance {
 
-    private double rilevazione;
+    private double tasso;
     private boolean recidiva;
     private boolean rifiutato;
     private boolean estraneo;
     private boolean incidente;
 
-    public double getRilevazione() {
-        return rilevazione;
+    public double getTasso() {
+        return tasso;
     }
 
-    public void setRilevazione(double rilevazione) {
-        this.rilevazione = rilevazione;
+    public void setTasso(double tasso) {
+        this.tasso = tasso;
     }
 
     public boolean isRecidiva() {

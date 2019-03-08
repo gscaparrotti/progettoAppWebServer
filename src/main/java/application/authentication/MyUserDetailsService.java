@@ -1,6 +1,6 @@
 package application.authentication;
 
-import application.model.UserRepository;
+import application.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.security.core.GrantedAuthority;
@@ -16,12 +16,16 @@ import java.util.*;
 @Service
 public class MyUserDetailsService implements UserDetailsService {
 
+    private final UserRepository userRepository;
+
     @Autowired
-    UserRepository userRepository;
+    public MyUserDetailsService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Optional<application.model.User> user = userRepository.findById(username);
+        Optional<application.entities.User> user = userRepository.findById(username);
         if (user.isPresent()) {
             return new User(user.get().getCodicefiscale(), user.get().getPassword(), getAuthorities(Collections.singletonList("ROLE_USER")));
         } else {

@@ -1,4 +1,4 @@
-package application.model;
+package application.entities;
 
 import javax.persistence.*;
 import java.util.Set;
