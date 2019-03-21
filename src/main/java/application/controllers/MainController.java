@@ -1,16 +1,22 @@
 package application.controllers;
 
 import application.authentication.AuthData;
-import application.entities.*;
+import application.entities.DrunkDriving;
+import application.entities.User;
 import application.repositories.DrunkDrivingRepository;
 import application.repositories.UserRepository;
+import application.storage.StorageService;
 import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -22,14 +28,16 @@ public class MainController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final DrunkDrivingRepository drunkDrivingRepository;
+    private final StorageService storageService;
     private final Gson gson = new Gson();
 
     @Autowired
     public MainController(UserRepository userRepository, DrunkDrivingRepository drunkDrivingRepository,
-                          PasswordEncoder passwordEncoder) {
+                          PasswordEncoder passwordEncoder, StorageService storageService) {
         this.userRepository = userRepository;
         this.drunkDrivingRepository = drunkDrivingRepository;
         this.passwordEncoder = passwordEncoder;
+        this.storageService = storageService;
     }
 
     @PostMapping("/newUser")
@@ -45,9 +53,9 @@ public class MainController {
     }
 
     @GetMapping("/getUserInfo")
-    @PreAuthorize("#codicefiscale == authentication.principal.username")
-    public @ResponseBody String getUserInfo(@RequestParam String codicefiscale) {
-        final Optional<User> searchedUser = userRepository.findById(codicefiscale);
+    @PreAuthorize("#user == authentication.principal.username")
+    public @ResponseBody String getUserInfo(@RequestParam String user) {
+        final Optional<User> searchedUser = userRepository.findById(user);
         if (searchedUser.isPresent()) {
             final User localUser = searchedUser.get();
             //this is necessary to avoid circular references when serializing
@@ -77,6 +85,29 @@ public class MainController {
             success.set(true);
         });
         return success.get();
+    }
+
+    @PostMapping("/fileUpload/{user}/{requestNumber}")
+    @PreAuthorize("#user == authentication.principal.username")
+    public boolean handleFileUpload(@PathVariable String user, @PathVariable long requestNumber, @RequestParam("file") MultipartFile file) {
+        try {
+            storageService.store(file, user, requestNumber);
+            return true;
+        } catch (final IOException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    @GetMapping("/uploadedFilesList")
+    @PreAuthorize("#user == authentication.principal.username")
+    public String getUploadedFilesList(@RequestParam String user, @RequestParam long requestNumber) {
+        try {
+            final List<String> files = new LinkedList<>();
+            storageService.loadAllFilenames(user, requestNumber).map(file -> file.getFileName().toString()).forEach(files::add);
+            return gson.toJson(files);
+        } catch (final IOException e) {
+            return gson.toJson(null);
+        }
     }
 
     @GetMapping("/test")
