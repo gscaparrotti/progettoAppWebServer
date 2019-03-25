@@ -2,6 +2,7 @@ package application.entities;
 
 import javax.persistence.*;
 import java.util.Date;
+import java.util.Set;
 
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
@@ -14,9 +15,19 @@ public class LegalAssistance {
     @ManyToOne
     @JoinColumn(name="user_id", nullable=false)
     private User user;
+    @OneToMany(mappedBy = "request")
+    private Set<DBFile> files;
     private Date requestDate;
     private Date paymentDate;
     private PaymentType paymentType;
+
+    public Set<DBFile> getFiles() {
+        return files;
+    }
+
+    public void setFiles(Set<DBFile> files) {
+        this.files = files;
+    }
 
     public long getId() {
         return id;

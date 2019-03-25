@@ -1,11 +1,13 @@
 package application.controllers;
 
 import application.authentication.AuthData;
+import application.entities.DBFile;
 import application.entities.DrunkDriving;
+import application.entities.LegalAssistance;
 import application.entities.User;
+import application.repositories.DBFilesRepository;
 import application.repositories.DrunkDrivingRepository;
 import application.repositories.UserRepository;
-import application.storage.StorageService;
 import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,6 +21,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 @CrossOrigin
 @RestController
@@ -28,16 +31,16 @@ public class MainController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final DrunkDrivingRepository drunkDrivingRepository;
-    private final StorageService storageService;
+    private final DBFilesRepository dbFilesRepository;
     private final Gson gson = new Gson();
 
     @Autowired
     public MainController(UserRepository userRepository, DrunkDrivingRepository drunkDrivingRepository,
-                          PasswordEncoder passwordEncoder, StorageService storageService) {
+                          PasswordEncoder passwordEncoder, DBFilesRepository dbFilesRepository) {
         this.userRepository = userRepository;
         this.drunkDrivingRepository = drunkDrivingRepository;
         this.passwordEncoder = passwordEncoder;
-        this.storageService = storageService;
+        this.dbFilesRepository = dbFilesRepository;
     }
 
     @PostMapping("/newUser")
@@ -59,7 +62,11 @@ public class MainController {
         if (searchedUser.isPresent()) {
             final User localUser = searchedUser.get();
             //this is necessary to avoid circular references when serializing
-            localUser.getRequiredLegalAssistance().parallelStream().forEach(request -> request.setUser(null));
+            //also, this method is not intended to provide information about uploaded files
+            localUser.getRequiredLegalAssistance().parallelStream().forEach(request -> {
+                request.setUser(null);
+                request.setFiles(null);
+            });
             return gson.toJson(localUser);
         } else {
             return gson.toJson(null);
@@ -90,24 +97,34 @@ public class MainController {
     @PostMapping("/fileUpload/{user}/{requestNumber}")
     @PreAuthorize("#user == authentication.principal.username")
     public boolean handleFileUpload(@PathVariable String user, @PathVariable long requestNumber, @RequestParam("file") MultipartFile file) {
-        try {
-            storageService.store(file, user, requestNumber);
-            return true;
-        } catch (final IOException | IllegalArgumentException e) {
-            return false;
-        }
+        final AtomicBoolean success = new AtomicBoolean(false);
+        forEachRequestFromUser(user, requestNumber, request -> {
+            try {
+                final DBFile dbFile = new DBFile();
+                dbFile.setRequest(request);
+                dbFile.setFileName(file.getOriginalFilename());
+                dbFile.setData(file.getBytes());
+                dbFilesRepository.save(dbFile);
+                success.set(true);
+            } catch (final IOException e) {
+                success.set(false);
+            }
+        });
+        return success.get();
     }
 
     @GetMapping("/uploadedFilesList")
     @PreAuthorize("#user == authentication.principal.username")
     public String getUploadedFilesList(@RequestParam String user, @RequestParam long requestNumber) {
-        try {
-            final List<String> files = new LinkedList<>();
-            storageService.loadAllFilenames(user, requestNumber).map(file -> file.getFileName().toString()).forEach(files::add);
-            return gson.toJson(files);
-        } catch (final IOException e) {
-            return gson.toJson(null);
-        }
+        final List<String> fileNames = new LinkedList<>();
+        forEachRequestFromUser(user, requestNumber, request -> request.getFiles().forEach(file -> fileNames.add(file.getFileName())));
+        return gson.toJson(fileNames);
+    }
+
+    private void forEachRequestFromUser(final String user, final long requestNumber, final Consumer<LegalAssistance> action) {
+        userRepository.findById(user).ifPresent(foundUser -> foundUser.getRequiredLegalAssistance().parallelStream()
+                .filter(request -> request.getId() == requestNumber)
+                .forEach(action));
     }
 
     @GetMapping("/test")
