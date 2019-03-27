@@ -1,15 +1,15 @@
-package application.controllers;
+package application.utils;
 
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 
 import java.util.Properties;
 
-class Mailer {
+public class Mailer {
     private static Mailer ourInstance = new Mailer();
     private final JavaMailSenderImpl mailSender;
 
-    static Mailer getInstance() {
+    public static Mailer getInstance() {
         return ourInstance;
     }
 
@@ -26,7 +26,7 @@ class Mailer {
         props.put("mail.smtp.starttls.enable", "true");
     }
 
-    void sendConfirmationEmail(final String address) {
+    public void sendConfirmationEmail(final String address) {
         final SimpleMailMessage msg = new SimpleMailMessage();
         msg.setFrom("no-reply@studiolegalebrioli.it");
         msg.setTo(address);
