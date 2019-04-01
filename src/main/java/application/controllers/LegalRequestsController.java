@@ -5,6 +5,7 @@ import application.repositories.DrunkDrivingRepository;
 import application.repositories.UserRepository;
 import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,6 +28,7 @@ public class LegalRequestsController {
     }
 
     @PostMapping("/drunkDriving/{user}")
+    @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("#user == authentication.principal.username")
     public boolean drunkDriving(@PathVariable String user, @RequestBody String jsonData) {
         final AtomicBoolean success = new AtomicBoolean(false);

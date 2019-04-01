@@ -5,6 +5,7 @@ import application.repositories.UserRepository;
 import application.utils.Mailer;
 import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -26,8 +27,9 @@ public class UserController {
         this.passwordEncoder = passwordEncoder;
     }
 
-    @PostMapping("/newUser")
-    public @ResponseBody boolean newUser(@RequestBody String user) {
+    @PostMapping("/users")
+    @ResponseStatus(HttpStatus.CREATED)
+    public boolean newUser(@RequestBody String user) {
         final User newUser = gson.fromJson(user, User.class);
         newUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
         if (userRepository.existsById(newUser.getCodicefiscale())) {
@@ -38,9 +40,9 @@ public class UserController {
         return true;
     }
 
-    @GetMapping("/getUserInfo")
+    @GetMapping("/users/{user}")
     @PreAuthorize("#user == authentication.principal.username")
-    public @ResponseBody String getUserInfo(@RequestParam String user) {
+    public String getUserInfo(@PathVariable String user) {
         final Optional<User> searchedUser = userRepository.findById(user);
         if (searchedUser.isPresent()) {
             final User localUser = searchedUser.get();
