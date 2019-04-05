@@ -3,6 +3,7 @@ package application.authentication;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -33,7 +34,7 @@ public class BasicAuthConfiguration extends WebSecurityConfigurerAdapter {
         http.csrf().disable()
         .cors().and()
         .authorizeRequests()
-        .antMatchers("/api/newUser")
+        .antMatchers(HttpMethod.POST, "/api/users")
         .permitAll()
         .antMatchers("/api/login")
         .permitAll()
