@@ -3,14 +3,12 @@ package application.controllers;
 import application.entities.User;
 import application.repositories.UserRepository;
 import application.utils.Mailer;
-import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Optional;
 
 @CrossOrigin
 @RestController
@@ -19,7 +17,6 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final Gson gson = new Gson();
 
     @Autowired
     public UserController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
@@ -28,33 +25,21 @@ public class UserController {
     }
 
     @PostMapping("/users")
-    @ResponseStatus(HttpStatus.CREATED)
-    public boolean newUser(@RequestBody String user) {
-        final User newUser = gson.fromJson(user, User.class);
+    public ResponseEntity<User> newUser(@RequestBody User newUser) {
         newUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
         if (userRepository.existsById(newUser.getCodicefiscale())) {
-            return false;
+            return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
-        userRepository.save(newUser);
+        newUser = userRepository.save(newUser);
         Mailer.getInstance().sendConfirmationEmail(newUser.getEmail());
-        return true;
+        return new ResponseEntity<>(newUser, HttpStatus.OK);
     }
 
     @GetMapping("/users/{user}")
     @PreAuthorize("#user == authentication.principal.username")
-    public String getUserInfo(@PathVariable String user) {
-        final Optional<User> searchedUser = userRepository.findById(user);
-        if (searchedUser.isPresent()) {
-            final User localUser = searchedUser.get();
-            //this is necessary to avoid circular references when serializing
-            //also, this method is not intended to provide information about uploaded files
-            localUser.getRequiredLegalAssistance().parallelStream().forEach(request -> {
-                request.setUser(null);
-                request.setFiles(null);
-            });
-            return gson.toJson(localUser);
-        } else {
-            return gson.toJson(null);
-        }
+    public ResponseEntity<User> getUserInfo(@PathVariable String user) {
+        return userRepository.findById(user)
+                .map(value -> new ResponseEntity<>(value, HttpStatus.OK))
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 }

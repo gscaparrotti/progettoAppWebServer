@@ -5,6 +5,7 @@ import application.entities.User;
 import application.repositories.UserRepository;
 import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,9 +27,9 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public boolean login(@RequestBody String login) {
-        final AuthData authData = gson.fromJson(login, AuthData.class);
-        final Optional<User> user = userRepository.findById(authData.getCodicefiscale());
-        return user.isPresent() && passwordEncoder.matches(authData.getPassword(), user.get().getPassword());
+    @ResponseStatus(HttpStatus.OK)
+    public boolean login(@RequestBody User user) {
+        final Optional<User> optUser = userRepository.findById(user.getCodicefiscale());
+        return optUser.isPresent() && passwordEncoder.matches(user.getPassword(), optUser.get().getPassword());
     }
 }

@@ -1,16 +1,17 @@
 package application.controllers;
 
 import application.entities.DrunkDriving;
+import application.entities.LegalAssistance;
 import application.repositories.DrunkDrivingRepository;
 import application.repositories.UserRepository;
-import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Set;
 
 @CrossOrigin
 @RestController
@@ -19,7 +20,6 @@ public class LegalRequestsController {
 
     private final UserRepository userRepository;
     private final DrunkDrivingRepository drunkDrivingRepository;
-    private final Gson gson = new Gson();
 
     @Autowired
     public LegalRequestsController(UserRepository userRepository, DrunkDrivingRepository drunkDrivingRepository) {
@@ -28,17 +28,25 @@ public class LegalRequestsController {
     }
 
     @PostMapping("/drunkDriving/{user}")
-    @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("#user == authentication.principal.username")
-    public boolean drunkDriving(@PathVariable String user, @RequestBody String jsonData) {
-        final AtomicBoolean success = new AtomicBoolean(false);
-        userRepository.findById(user).ifPresent(foundUser -> {
-            final DrunkDriving drunkDriving = gson.fromJson(jsonData, DrunkDriving.class);
-            drunkDriving.setRequestDate(new Date());
-            drunkDriving.setUser(foundUser);
-            drunkDrivingRepository.save(drunkDriving);
-            success.set(true);
-        });
-        return success.get();
+    public ResponseEntity<DrunkDriving> newDrunkDriving(@PathVariable String user, @RequestBody DrunkDriving drunkDriving) {
+        return userRepository.findById(user).map(foundUser -> {
+            DrunkDriving localDrunkDriving = drunkDriving;
+            localDrunkDriving.setRequestDate(new Date());
+            localDrunkDriving.setUser(foundUser);
+            localDrunkDriving = drunkDrivingRepository.save(localDrunkDriving);
+            return new ResponseEntity<>(localDrunkDriving, HttpStatus.OK);
+        }).orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    @GetMapping("/legalAssistance/{user}")
+    @PreAuthorize("#user == authentication.principal.username")
+    public ResponseEntity<Set<LegalAssistance>> getLegalAssistance(@PathVariable String user) {
+        return userRepository.findById(user)
+                .map(foundUser -> {
+                    final HttpStatus status = foundUser.getRequiredLegalAssistance().size() > 0 ? HttpStatus.OK : HttpStatus.NOT_FOUND;
+                    return new ResponseEntity<>(foundUser.getRequiredLegalAssistance(), status);
+                })
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 }

@@ -1,5 +1,8 @@
 package application.entities;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 import java.util.Date;
 import java.util.Set;
@@ -12,12 +15,16 @@ public class LegalAssistance {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private long id;
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name="user_id", nullable=false)
     private User user;
+    @JsonIgnore
     @OneToMany(mappedBy = "request")
     private Set<DBFile> files;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy hh:mm:ss")
     private Date requestDate;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy hh:mm:ss")
     private Date paymentDate;
     private PaymentType paymentType;
 

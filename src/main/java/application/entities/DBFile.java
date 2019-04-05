@@ -1,5 +1,7 @@
 package application.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 import java.io.Serializable;
 import java.util.Objects;
@@ -9,6 +11,7 @@ public class DBFile {
 
     @EmbeddedId
     private DBFileID dbFileID;
+    @JsonIgnore
     @MapsId("request")
     @ManyToOne
     @JoinColumn(name="legal_assistance_id", nullable=false)

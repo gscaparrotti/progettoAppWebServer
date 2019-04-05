@@ -1,5 +1,7 @@
 package application.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 import java.util.Set;
 
@@ -13,6 +15,7 @@ public class User {
     private String cognome;
     private String email;
     private String password;
+    @JsonIgnore
     @OneToMany(mappedBy = "user")
     private Set<LegalAssistance> requiredLegalAssistance;
 
