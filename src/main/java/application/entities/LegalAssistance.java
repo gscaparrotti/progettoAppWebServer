@@ -2,11 +2,13 @@ package application.entities;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import javax.persistence.*;
 import java.util.Date;
 import java.util.Set;
 
+@JsonTypeInfo(use = JsonTypeInfo.Id.MINIMAL_CLASS, property = "className")
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
 public class LegalAssistance {
@@ -22,9 +24,9 @@ public class LegalAssistance {
     @JsonIgnore
     @OneToMany(mappedBy = "request")
     private Set<DBFile> files;
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy hh:mm:ss")
+    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Date requestDate;
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy hh:mm:ss")
+    @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Date paymentDate;
     private PaymentType paymentType;
 

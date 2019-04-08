@@ -63,13 +63,16 @@ public class FileStorageController {
     @GetMapping("/files/{user}/{requestNumber}")
     @PreAuthorize("#user == authentication.principal.username")
     public ResponseEntity<List<String>> getUploadedFilesList(@PathVariable String user, @PathVariable long requestNumber) {
-        final Optional<List<String>> optFileNames = transformRequestFromUser(user, requestNumber, request -> request.getFiles()
-                .stream().map(file -> file.getDbFileID().getFilename()).collect(Collectors.toList()));
-        return optFileNames.map(fileNames -> new ResponseEntity<>(fileNames, HttpStatus.OK))
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        final Optional<ResponseEntity<List<String>>> responseEntity = transformRequestFromUser(user, requestNumber, request -> {
+            final List<String> fileNames = request.getFiles().stream()
+                    .map(file -> file.getDbFileID().getFilename())
+                    .collect(Collectors.toList());
+            return new ResponseEntity<>(fileNames, HttpStatus.OK);
+        });
+        return responseEntity.orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    @GetMapping("/files/{user}/{requestNumber}/{fileName}")
+    @DeleteMapping("/files/{user}/{requestNumber}/{fileName}")
     @PreAuthorize("#user == authentication.principal.username")
     public ResponseEntity deleteFile(@PathVariable String user, @PathVariable long requestNumber, @PathVariable String fileName) {
         final Optional<ResponseEntity> responseEntity = transformRequestFromUser(user, requestNumber, request ->
@@ -78,10 +81,10 @@ public class FileStorageController {
                         .findAny()
                         .map(foundFile -> {
                             dbFilesRepository.delete(foundFile);
-                            return new ResponseEntity(HttpStatus.OK);
+                            return new ResponseEntity(HttpStatus.NO_CONTENT);
                         })
-                        .orElse(new ResponseEntity(HttpStatus.BAD_REQUEST)));
-        return responseEntity.orElse(new ResponseEntity(HttpStatus.BAD_REQUEST));
+                        .orElse(new ResponseEntity(HttpStatus.NOT_FOUND)));
+        return responseEntity.orElse(new ResponseEntity(HttpStatus.NOT_FOUND));
     }
 
     private <A> Optional<A> transformRequestFromUser(final String user, final long requestNumber,
