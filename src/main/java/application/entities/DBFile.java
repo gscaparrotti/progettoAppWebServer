@@ -1,6 +1,7 @@
 package application.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.persistence.*;
 import java.io.Serializable;
@@ -36,6 +37,7 @@ public class DBFile {
         this.data = data;
     }
 
+    @JsonProperty("id")
     public DBFileID getDbFileID() {
         return dbFileID;
     }

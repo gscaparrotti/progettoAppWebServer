@@ -72,6 +72,18 @@ public class FileStorageController {
         return responseEntity.orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
+    @GetMapping("/files/{user}/{requestNumber}/{fileName}")
+    @PreAuthorize("#user == authentication.principal.username")
+    public ResponseEntity<DBFile> getFile(@PathVariable String user, @PathVariable long requestNumber, @PathVariable String fileName) {
+        final Optional<ResponseEntity<DBFile>> responseEntity = transformRequestFromUser(user, requestNumber, request ->
+                request.getFiles().stream()
+                        .filter(file -> file.getDbFileID().getFilename().equals(fileName))
+                        .findAny()
+                        .map(foundFile -> new ResponseEntity<>(foundFile, HttpStatus.OK))
+                        .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND)));
+        return responseEntity.orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
     @DeleteMapping("/files/{user}/{requestNumber}/{fileName}")
     @PreAuthorize("#user == authentication.principal.username")
     public ResponseEntity deleteFile(@PathVariable String user, @PathVariable long requestNumber, @PathVariable String fileName) {
