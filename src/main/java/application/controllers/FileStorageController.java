@@ -4,6 +4,9 @@ import application.entities.DBFile;
 import application.entities.LegalAssistance;
 import application.repositories.DBFilesRepository;
 import application.repositories.UserRepository;
+import org.apache.tika.Tika;
+import org.apache.tika.io.TikaInputStream;
+import org.apache.tika.metadata.Metadata;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -22,6 +26,8 @@ import java.util.stream.Collectors;
 @RequestMapping({"/api"})
 public class FileStorageController {
 
+    private static final String[] ALLOWED_FORMATS = {"image/jpeg", "image/png", "image/tiff"};
+    private final Tika tika = new Tika();
     private final UserRepository userRepository;
     private final DBFilesRepository dbFilesRepository;
 
@@ -41,6 +47,12 @@ public class FileStorageController {
                 dbFileID.setFilename(file.getOriginalFilename());
                 dbFileID.setRequest(request.getId());
                 if (!dbFilesRepository.existsById(dbFileID)) {
+                    final Metadata metadata = new Metadata();
+                    metadata.set(Metadata.RESOURCE_NAME_KEY, file.getOriginalFilename());
+                    final String mimeType = tika.getDetector().detect(TikaInputStream.get(file.getBytes()), metadata).toString();
+                    if (Arrays.stream(ALLOWED_FORMATS).noneMatch(mimeType::equals)) {
+                        return new ResponseEntity<>(HttpStatus.I_AM_A_TEAPOT);
+                    }
                     DBFile dbFile = new DBFile();
                     dbFile.setDbFileID(dbFileID);
                     dbFile.setRequest(request);
