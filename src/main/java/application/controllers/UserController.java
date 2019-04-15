@@ -17,11 +17,13 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final Mailer mailer;
 
     @Autowired
-    public UserController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserController(UserRepository userRepository, PasswordEncoder passwordEncoder, Mailer mailer) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.mailer = mailer;
     }
 
     @PostMapping("/users")
@@ -31,7 +33,7 @@ public class UserController {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
         newUser = userRepository.save(newUser);
-        Mailer.getInstance().sendConfirmationEmail(newUser.getEmail());
+        mailer.sendConfirmationEmail(newUser.getEmail());
         return new ResponseEntity<>(newUser, HttpStatus.OK);
     }
 
