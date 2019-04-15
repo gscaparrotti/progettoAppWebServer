@@ -28,18 +28,22 @@ public class Mailer {
     public Mailer() {
         final String path = Paths.get("", "src/main/resources/mailer.parameters").toAbsolutePath().toString();
         try (final JsonReader jsonReader = new JsonReader(new FileReader(path))) {
-            final JavaMailSenderImpl localMailSender = new JavaMailSenderImpl();
             final Map<String, Object> parameters = new Gson().fromJson(jsonReader, Map.class);
-            localMailSender.setHost((String) parameters.get("host"));
-            localMailSender.setPort(((Double) parameters.get("port")).intValue());
-            localMailSender.setUsername((String) parameters.get("username"));
-            localMailSender.setPassword((String) parameters.get("password"));
-            final Properties props = localMailSender.getJavaMailProperties();
-            props.put("mail.transport.protocol", parameters.get("protocol"));
-            props.put("mail.smtps.auth", parameters.get("auth"));
-            props.put("mail.smtps.from", parameters.get("from"));
-            props.put("mail.smtp.starttls.enable", parameters.get("starttls"));
-            mailSender = localMailSender;
+            if ((Boolean) parameters.get("enabled")) {
+                final JavaMailSenderImpl localMailSender = new JavaMailSenderImpl();
+                localMailSender.setHost((String) parameters.get("host"));
+                localMailSender.setPort(((Double) parameters.get("port")).intValue());
+                localMailSender.setUsername((String) parameters.get("username"));
+                localMailSender.setPassword((String) parameters.get("password"));
+                final Properties props = localMailSender.getJavaMailProperties();
+                props.put("mail.transport.protocol", parameters.get("protocol"));
+                props.put("mail.smtps.auth", parameters.get("auth"));
+                props.put("mail.smtps.from", parameters.get("from"));
+                props.put("mail.smtp.starttls.enable", parameters.get("starttls"));
+                mailSender = localMailSender;
+            } else {
+                logger.info("Mailer disabled (as specified in config file)");
+            }
         } catch (final IOException | ClassCastException e) {
             logger.warn("Cannot load mailer configuration file: " + e.getMessage() + ". Email system won't work.");
         }
