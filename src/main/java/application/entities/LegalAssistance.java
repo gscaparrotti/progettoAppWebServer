@@ -24,6 +24,9 @@ public class LegalAssistance {
     @JsonIgnore
     @OneToMany(mappedBy = "request")
     private Set<DBFile> files;
+    @JsonIgnore
+    @OneToMany(mappedBy = "request")
+    private Set<Message> messages;
     @JsonFormat(shape = JsonFormat.Shape.NUMBER)
     private Date requestDate;
     @JsonFormat(shape = JsonFormat.Shape.NUMBER)
@@ -76,6 +79,14 @@ public class LegalAssistance {
 
     public void setPaymentType(PaymentType paymentType) {
         this.paymentType = paymentType;
+    }
+
+    public Set<Message> getMessages() {
+        return messages;
+    }
+
+    public void setMessages(Set<Message> messages) {
+        this.messages = messages;
     }
 
     public enum PaymentType {
