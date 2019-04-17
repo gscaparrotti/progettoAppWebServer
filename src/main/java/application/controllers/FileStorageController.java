@@ -1,9 +1,8 @@
 package application.controllers;
 
 import application.entities.DBFile;
-import application.entities.LegalAssistance;
 import application.repositories.DBFilesRepository;
-import application.repositories.UserRepository;
+import application.utils.UserRepositoryHelper;
 import org.apache.tika.Tika;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
@@ -18,7 +17,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @CrossOrigin
@@ -28,22 +26,22 @@ public class FileStorageController {
 
     private static final String[] ALLOWED_FORMATS = {"image/jpeg", "image/png", "image/tiff"};
     private final Tika tika = new Tika();
-    private final UserRepository userRepository;
+    private final UserRepositoryHelper helper;
     private final DBFilesRepository dbFilesRepository;
 
     @Autowired
-    public FileStorageController(UserRepository userRepository, DBFilesRepository dbFilesRepository) {
-        this.userRepository = userRepository;
+    public FileStorageController(UserRepositoryHelper userRepositoryHelper, DBFilesRepository dbFilesRepository) {
+        this.helper = userRepositoryHelper;
         this.dbFilesRepository = dbFilesRepository;
     }
 
-    @PostMapping(value = "/files/{user}/{requestNumber}", params = {"returnFile"})
+    @PostMapping("/files/{user}/{requestNumber}")
     @PreAuthorize("#user == authentication.principal.username")
     public ResponseEntity<DBFile> handleFileUpload(@PathVariable String user, @PathVariable long requestNumber,
-                                           @RequestPart MultipartFile file, @RequestParam boolean returnFile) {
-        final Optional<ResponseEntity<DBFile>> responseEntity = transformRequestFromUser(user, requestNumber, request -> {
+                                                   @RequestPart MultipartFile file, @RequestParam boolean returnFile) {
+        final Optional<ResponseEntity<DBFile>> responseEntity = helper.transformRequestFromUser(user, requestNumber, request -> {
             try {
-                final DBFile.DBFileID  dbFileID = new DBFile.DBFileID();
+                final DBFile.DBFileID dbFileID = new DBFile.DBFileID();
                 dbFileID.setFilename(file.getOriginalFilename());
                 dbFileID.setRequest(request.getId());
                 if (!dbFilesRepository.existsById(dbFileID)) {
@@ -74,10 +72,15 @@ public class FileStorageController {
 
     @GetMapping("/files/{user}/{requestNumber}")
     @PreAuthorize("#user == authentication.principal.username")
-    public ResponseEntity<List<String>> getUploadedFilesList(@PathVariable String user, @PathVariable long requestNumber) {
-        final Optional<ResponseEntity<List<String>>> responseEntity = transformRequestFromUser(user, requestNumber, request -> {
-            final List<String> fileNames = request.getFiles().stream()
-                    .map(file -> file.getDbFileID().getFilename())
+    public ResponseEntity<List<DBFile>> getUploadedFilesList(@PathVariable String user, @PathVariable long requestNumber,
+                                                             @RequestParam boolean keepContent) {
+        final Optional<ResponseEntity<List<DBFile>>> responseEntity = helper.transformRequestFromUser(user, requestNumber, request -> {
+            final List<DBFile> fileNames = request.getFiles().stream()
+                    .peek(file -> {
+                        if (!keepContent) {
+                            file.setData(null);
+                        }
+                    })
                     .collect(Collectors.toList());
             return new ResponseEntity<>(fileNames, HttpStatus.OK);
         });
@@ -87,7 +90,7 @@ public class FileStorageController {
     @GetMapping("/files/{user}/{requestNumber}/{fileName}")
     @PreAuthorize("#user == authentication.principal.username")
     public ResponseEntity<DBFile> getFile(@PathVariable String user, @PathVariable long requestNumber, @PathVariable String fileName) {
-        final Optional<ResponseEntity<DBFile>> responseEntity = transformRequestFromUser(user, requestNumber, request ->
+        final Optional<ResponseEntity<DBFile>> responseEntity = helper.transformRequestFromUser(user, requestNumber, request ->
                 request.getFiles().stream()
                         .filter(file -> file.getDbFileID().getFilename().equals(fileName))
                         .findAny()
@@ -99,7 +102,7 @@ public class FileStorageController {
     @DeleteMapping("/files/{user}/{requestNumber}/{fileName}")
     @PreAuthorize("#user == authentication.principal.username")
     public ResponseEntity deleteFile(@PathVariable String user, @PathVariable long requestNumber, @PathVariable String fileName) {
-        final Optional<ResponseEntity> responseEntity = transformRequestFromUser(user, requestNumber, request ->
+        final Optional<ResponseEntity> responseEntity = helper.transformRequestFromUser(user, requestNumber, request ->
                 request.getFiles().stream()
                         .filter(file -> file.getDbFileID().getFilename().equals(fileName))
                         .findAny()
@@ -109,14 +112,5 @@ public class FileStorageController {
                         })
                         .orElse(new ResponseEntity(HttpStatus.NOT_FOUND)));
         return responseEntity.orElse(new ResponseEntity(HttpStatus.NOT_FOUND));
-    }
-
-    private <A> Optional<A> transformRequestFromUser(final String user, final long requestNumber,
-                                                     final Function<LegalAssistance, A> functionOnRequest) {
-        return userRepository.findById(user).flatMap(foundUser -> foundUser.getRequiredLegalAssistance().stream()
-                .filter(request -> request.getId() == requestNumber)
-                .limit(1) //there should be just one hit, but just in case...
-                .map(functionOnRequest)
-                .findAny());
     }
 }
