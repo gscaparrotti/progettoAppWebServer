@@ -27,7 +27,8 @@ public class MyUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         Optional<application.entities.User> user = userRepository.findById(username);
         if (user.isPresent()) {
-            return new User(user.get().getCodicefiscale(), user.get().getPassword(), getAuthorities(Collections.singletonList("ROLE_USER")));
+            final List<String> role = Collections.singletonList(user.get().isAdmin() ? "ROLE_ADMIN" : "ROLE_USER");
+            return new User(user.get().getCodicefiscale(), user.get().getPassword(), getAuthorities(role));
         } else {
             throw new UsernameNotFoundException("User " + username + " not found");
         }

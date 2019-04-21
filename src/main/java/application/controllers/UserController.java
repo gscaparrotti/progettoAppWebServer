@@ -29,6 +29,7 @@ public class UserController {
     @PostMapping("/users")
     public ResponseEntity<User> newUser(@RequestBody User newUser) {
         newUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
+        newUser.setAdmin(false);
         if (userRepository.existsById(newUser.getCodicefiscale())) {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
@@ -38,7 +39,7 @@ public class UserController {
     }
 
     @GetMapping("/users/{user}")
-    @PreAuthorize("#user == authentication.principal.username")
+    @PreAuthorize("#user == authentication.principal.username or hasRole('ROLE_ADMIN')")
     public ResponseEntity<User> getUserInfo(@PathVariable String user) {
         return userRepository.findById(user)
                 .map(value -> new ResponseEntity<>(value, HttpStatus.OK))

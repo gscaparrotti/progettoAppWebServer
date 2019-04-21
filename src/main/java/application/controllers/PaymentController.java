@@ -51,7 +51,7 @@ public class PaymentController {
     }
 
     @PostMapping("/payWithCC")
-    @PreAuthorize("#user == authentication.principal.username")
+    @PreAuthorize("#user == authentication.principal.username or hasRole('ROLE_ADMIN')")
     public ResponseEntity payWithCC(@RequestParam String user, @RequestParam long request, @RequestParam String token) {
         if (Stripe.apiKey == null) {
             return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);

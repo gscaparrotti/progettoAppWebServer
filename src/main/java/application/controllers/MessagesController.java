@@ -27,7 +27,7 @@ public class MessagesController {
     }
 
     @GetMapping("/messages/{user}/{requestNumber}")
-    @PreAuthorize("#user == authentication.principal.username")
+    @PreAuthorize("#user == authentication.principal.username or hasRole('ROLE_ADMIN')")
     public ResponseEntity<Set<Message>> getMessages(@PathVariable String user, @PathVariable long requestNumber) {
         return helper.transformRequestFromUser(user, requestNumber,
                 request -> new ResponseEntity<>(request.getMessages(), HttpStatus.OK))
@@ -35,7 +35,7 @@ public class MessagesController {
     }
 
     @PostMapping("/messages/{user}/{requestNumber}")
-    @PreAuthorize("#user == authentication.principal.username")
+    @PreAuthorize("#user == authentication.principal.username or hasRole('ROLE_ADMIN')")
     public ResponseEntity<Message> addMessage(@PathVariable String user, @PathVariable long requestNumber,
                                               @RequestBody Message message) {
         return helper.transformRequestFromUser(user, requestNumber, request -> {

@@ -36,7 +36,7 @@ public class FileStorageController {
     }
 
     @PostMapping("/files/{user}/{requestNumber}")
-    @PreAuthorize("#user == authentication.principal.username")
+    @PreAuthorize("#user == authentication.principal.username or hasRole('ROLE_ADMIN')")
     public ResponseEntity<DBFile> handleFileUpload(@PathVariable String user, @PathVariable long requestNumber,
                                                    @RequestPart MultipartFile file, @RequestParam boolean returnFile) {
         final Optional<ResponseEntity<DBFile>> responseEntity = helper.transformRequestFromUser(user, requestNumber, request -> {
@@ -68,7 +68,7 @@ public class FileStorageController {
     }
 
     @GetMapping("/files/{user}/{requestNumber}")
-    @PreAuthorize("#user == authentication.principal.username")
+    @PreAuthorize("#user == authentication.principal.username or hasRole('ROLE_ADMIN')")
     public ResponseEntity<List<DBFile>> getUploadedFilesList(@PathVariable String user, @PathVariable long requestNumber,
                                                              @RequestParam boolean keepContent) {
         final Optional<ResponseEntity<List<DBFile>>> responseEntity = helper.transformRequestFromUser(user, requestNumber, request -> {
@@ -85,7 +85,7 @@ public class FileStorageController {
     }
 
     @GetMapping("/files/{user}/{requestNumber}/{fileName}")
-    @PreAuthorize("#user == authentication.principal.username")
+    @PreAuthorize("#user == authentication.principal.username or hasRole('ROLE_ADMIN')")
     public ResponseEntity<DBFile> getFile(@PathVariable String user, @PathVariable long requestNumber, @PathVariable String fileName) {
         final Optional<ResponseEntity<DBFile>> responseEntity = helper.transformRequestFromUser(user, requestNumber, request ->
                 request.getFiles().stream()
@@ -97,7 +97,7 @@ public class FileStorageController {
     }
 
     @DeleteMapping("/files/{user}/{requestNumber}/{fileName}")
-    @PreAuthorize("#user == authentication.principal.username")
+    @PreAuthorize("#user == authentication.principal.username or hasRole('ROLE_ADMIN')")
     public ResponseEntity deleteFile(@PathVariable String user, @PathVariable long requestNumber, @PathVariable String fileName) {
         final Optional<ResponseEntity> responseEntity = helper.transformRequestFromUser(user, requestNumber, request ->
                 request.getFiles().stream()

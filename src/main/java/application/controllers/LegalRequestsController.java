@@ -28,7 +28,7 @@ public class LegalRequestsController {
     }
 
     @PostMapping("/drunkDriving/{user}")
-    @PreAuthorize("#user == authentication.principal.username")
+    @PreAuthorize("#user == authentication.principal.username or hasRole('ROLE_ADMIN')")
     public ResponseEntity<DrunkDriving> newDrunkDriving(@PathVariable String user, @RequestBody DrunkDriving drunkDriving) {
         return userRepository.findById(user).map(foundUser -> {
             DrunkDriving localDrunkDriving = drunkDriving;
@@ -40,7 +40,7 @@ public class LegalRequestsController {
     }
 
     @GetMapping("/legalAssistance/{user}")
-    @PreAuthorize("#user == authentication.principal.username")
+    @PreAuthorize("#user == authentication.principal.username or hasRole('ROLE_ADMIN')")
     public ResponseEntity<Set<LegalAssistance>> getLegalAssistance(@PathVariable String user) {
         return userRepository.findById(user)
                 .map(foundUser -> {

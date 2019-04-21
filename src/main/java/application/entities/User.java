@@ -16,6 +16,8 @@ public class User {
     private String email;
     private String password;
     @JsonIgnore
+    private boolean isAdmin;
+    @JsonIgnore
     @OneToMany(mappedBy = "user")
     private Set<LegalAssistance> requiredLegalAssistance;
 
@@ -65,5 +67,13 @@ public class User {
 
     public void setRequiredLegalAssistance(Set<LegalAssistance> requiredLegalAssistance) {
         this.requiredLegalAssistance = requiredLegalAssistance;
+    }
+
+    public boolean isAdmin() {
+        return isAdmin;
+    }
+
+    public void setAdmin(boolean admin) {
+        isAdmin = admin;
     }
 }
