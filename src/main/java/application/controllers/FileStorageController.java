@@ -45,10 +45,7 @@ public class FileStorageController {
                 dbFileID.setFilename(file.getOriginalFilename());
                 dbFileID.setRequest(request.getId());
                 if (!dbFilesRepository.existsById(dbFileID)) {
-                    final Metadata metadata = new Metadata();
-                    metadata.set(Metadata.RESOURCE_NAME_KEY, file.getOriginalFilename());
-                    final String mimeType = tika.getDetector().detect(TikaInputStream.get(file.getBytes()), metadata).toString();
-                    if (Arrays.stream(ALLOWED_FORMATS).noneMatch(mimeType::equals)) {
+                    if (!isAllowedFileType(file.getOriginalFilename(), file.getBytes())) {
                         return new ResponseEntity<>(HttpStatus.I_AM_A_TEAPOT);
                     }
                     DBFile dbFile = new DBFile();
@@ -112,5 +109,12 @@ public class FileStorageController {
                         })
                         .orElse(new ResponseEntity(HttpStatus.NOT_FOUND)));
         return responseEntity.orElse(new ResponseEntity(HttpStatus.NOT_FOUND));
+    }
+
+    private boolean isAllowedFileType(final String fileName, final byte[] fileBytes) throws IOException {
+        final Metadata metadata = new Metadata();
+        metadata.set(Metadata.RESOURCE_NAME_KEY, fileName);
+        final String mimeType = tika.getDetector().detect(TikaInputStream.get(fileBytes), metadata).toString();
+        return Arrays.asList(ALLOWED_FORMATS).contains(mimeType);
     }
 }

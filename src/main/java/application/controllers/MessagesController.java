@@ -39,7 +39,7 @@ public class MessagesController {
     public ResponseEntity<Message> addMessage(@PathVariable String user, @PathVariable long requestNumber,
                                               @RequestBody Message message) {
         return helper.transformRequestFromUser(user, requestNumber, request -> {
-            if (message.getMessage().length() == 0) {
+            if (message.getMessage() == null || message.getMessage().length() == 0) {
                 return new ResponseEntity<Message>(HttpStatus.BAD_REQUEST);
             }
             message.setRequest(request);
