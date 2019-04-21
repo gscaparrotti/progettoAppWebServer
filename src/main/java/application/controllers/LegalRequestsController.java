@@ -4,6 +4,7 @@ import application.entities.DrunkDriving;
 import application.entities.LegalAssistance;
 import application.repositories.DrunkDrivingRepository;
 import application.repositories.UserRepository;
+import application.utils.Mailer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,11 +21,14 @@ public class LegalRequestsController {
 
     private final UserRepository userRepository;
     private final DrunkDrivingRepository drunkDrivingRepository;
+    private final Mailer mailer;
 
     @Autowired
-    public LegalRequestsController(UserRepository userRepository, DrunkDrivingRepository drunkDrivingRepository) {
+    public LegalRequestsController(UserRepository userRepository, DrunkDrivingRepository drunkDrivingRepository,
+                                   Mailer mailer) {
         this.userRepository = userRepository;
         this.drunkDrivingRepository = drunkDrivingRepository;
+        this.mailer = mailer;
     }
 
     @PostMapping("/drunkDriving/{user}")
@@ -35,6 +39,7 @@ public class LegalRequestsController {
             localDrunkDriving.setRequestDate(new Date());
             localDrunkDriving.setUser(foundUser);
             localDrunkDriving = drunkDrivingRepository.save(localDrunkDriving);
+            mailer.sendNewRequestEmail(foundUser.getEmail(), localDrunkDriving.getId());
             return new ResponseEntity<>(localDrunkDriving, HttpStatus.OK);
         }).orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }

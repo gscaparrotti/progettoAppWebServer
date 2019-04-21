@@ -2,6 +2,7 @@ package application.controllers;
 
 import application.entities.Message;
 import application.repositories.MessagesRepository;
+import application.utils.Mailer;
 import application.utils.UserRepositoryHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,11 +20,14 @@ public class MessagesController {
 
     private final UserRepositoryHelper helper;
     private final MessagesRepository messagesRepository;
+    private final Mailer mailer;
 
     @Autowired
-    public MessagesController(UserRepositoryHelper userRepositoryHelper, MessagesRepository messagesRepository) {
+    public MessagesController(UserRepositoryHelper userRepositoryHelper, MessagesRepository messagesRepository,
+                              Mailer mailer) {
         this.helper = userRepositoryHelper;
         this.messagesRepository = messagesRepository;
+        this.mailer = mailer;
     }
 
     @GetMapping("/messages/{user}/{requestNumber}")
@@ -45,6 +49,7 @@ public class MessagesController {
             message.setRequest(request);
             message.setDate(new Date());
             final Message newMessage = messagesRepository.save(message);
+            mailer.sendNotificationEmail(request.getUser().getEmail(), request.getId());
             return new ResponseEntity<>(newMessage, HttpStatus.OK);
         }).orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }

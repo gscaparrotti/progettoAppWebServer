@@ -34,7 +34,7 @@ public class UserController {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
         newUser = userRepository.save(newUser);
-        mailer.sendConfirmationEmail(newUser.getEmail());
+        mailer.sendNewUserEmail(newUser.getEmail());
         return new ResponseEntity<>(newUser, HttpStatus.OK);
     }
 

@@ -2,6 +2,7 @@ package application.controllers;
 
 import application.entities.DBFile;
 import application.repositories.DBFilesRepository;
+import application.utils.Mailer;
 import application.utils.UserRepositoryHelper;
 import org.apache.tika.Tika;
 import org.apache.tika.io.TikaInputStream;
@@ -28,11 +29,14 @@ public class FileStorageController {
     private final Tika tika = new Tika();
     private final UserRepositoryHelper helper;
     private final DBFilesRepository dbFilesRepository;
+    private final Mailer mailer;
 
     @Autowired
-    public FileStorageController(UserRepositoryHelper userRepositoryHelper, DBFilesRepository dbFilesRepository) {
+    public FileStorageController(UserRepositoryHelper userRepositoryHelper, DBFilesRepository dbFilesRepository,
+                                 Mailer mailer) {
         this.helper = userRepositoryHelper;
         this.dbFilesRepository = dbFilesRepository;
+        this.mailer = mailer;
     }
 
     @PostMapping("/files/{user}/{requestNumber}")
@@ -56,6 +60,7 @@ public class FileStorageController {
                     if (!returnFile) {
                         dbFile.setData(null);
                     }
+                    mailer.sendNotificationEmail(request.getUser().getEmail(), request.getId());
                     return new ResponseEntity<>(dbFile, HttpStatus.OK);
                 } else {
                     return new ResponseEntity<>(HttpStatus.CONFLICT);

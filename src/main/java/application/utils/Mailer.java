@@ -11,6 +11,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -18,10 +20,13 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Future;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 @Service
 public class Mailer {
     private final Logger logger = LoggerFactory.getLogger(Mailer.class);
+    private String adminAddress = null;
+    private String from = null;
     private JavaMailSenderImpl mailSender = null;
 
 
@@ -38,58 +43,90 @@ public class Mailer {
                 final Properties props = localMailSender.getJavaMailProperties();
                 props.put("mail.transport.protocol", parameters.get("protocol"));
                 props.put("mail.smtps.auth", parameters.get("auth"));
-                props.put("mail.smtps.from", parameters.get("from"));
+                props.put("mail.smtps.from", validateEmail((String) parameters.get("from")));
                 props.put("mail.smtp.starttls.enable", parameters.get("starttls"));
+                from = validateEmail((String) parameters.get("from"));
+                adminAddress = validateEmail((String) parameters.get("adminAddress"));
                 mailSender = localMailSender;
             } else {
                 logger.info("Mailer disabled (as specified in config file)");
             }
-        } catch (final IOException | ClassCastException e) {
+        } catch (final IOException | ClassCastException | AddressException | NullPointerException e) {
             logger.warn("Cannot load mailer configuration file: " + e.getMessage() + ". Email system won't work.");
         }
     }
 
     @Async
-    public Future<Boolean> sendConfirmationEmail(final String address) {
+    public Future<Boolean> sendNewUserEmail(final String address) {
         return ifPossible(address, innerAddress -> {
-            final SimpleMailMessage msg = new SimpleMailMessage();
-            msg.setFrom("no-reply@studiolegalebrioli.it");
-            msg.setTo(innerAddress);
-            msg.setSubject("Conferma registrazione");
-            msg.setText("Registrazione di " + address + " completata.");
-            try {
-                mailSender.send(msg);
-                return new AsyncResult<>(true);
-            } catch (final MailException e) {
-                logger.error("Cannot send email: ", e);
-                return new AsyncResult<>(false);
-            }
-        }, new AsyncResult<>(false));
+            final String subject = "Conferma registrazione";
+            final String text = "Registrazione di " + address + " completata.";
+            final boolean toUserResult = sendEmail(innerAddress, subject, text);
+            final boolean toAdminResult = sendEmail(adminAddress, subject, text);
+            return new AsyncResult<>(toUserResult && toAdminResult);
+        }, () -> new AsyncResult<>(false));
+    }
+
+    @Async
+    public Future<Boolean> sendNewRequestEmail(final String address, final long request) {
+        return ifPossible(address, innerAddress -> {
+            final String subject = "Nuova richiesta di assistenza";
+            final String text = "L'utente " + address + " ha effettuato la richiesta di assistenza con ID " + request + ".";
+            final boolean toUserResult = sendEmail(innerAddress, subject, text);
+            final boolean toAdminResult = sendEmail(adminAddress, subject, text);
+            return new AsyncResult<>(toUserResult && toAdminResult);
+        }, () -> new AsyncResult<>(false));
     }
 
     @Async
     public Future<Boolean> sendPaymentEmail(final String address, final long request) {
         return ifPossible(address, innerAddress -> {
-            final SimpleMailMessage msg = new SimpleMailMessage();
-            msg.setFrom("no-reply@studiolegalebrioli.it");
-            msg.setTo(innerAddress);
-            msg.setSubject("Conferma pagamento");
-            msg.setText("Pagamento di " + address + " per la prestazione n. " + request + " completato.");
-            try {
-                mailSender.send(msg);
-                return new AsyncResult<>(true);
-            } catch (final Exception e) {
-                logger.error("Cannot send email: ", e);
-                return new AsyncResult<>(false);
-            }
-        }, new AsyncResult<>(false));
+            final String subject = "Conferma pagamento";
+            final String text = "Pagamento di " + address + " per la prestazione n. " + request + " completato.";
+            final boolean toUserResult = sendEmail(innerAddress, subject, text);
+            final boolean toAdminResult = sendEmail(adminAddress, subject, text);
+            return new AsyncResult<>(toUserResult && toAdminResult);
+        }, () -> new AsyncResult<>(false));
     }
 
-    private <A, B> B ifPossible(final A parameter, final Function<A, B> function, final B orElse) {
+    @Async
+    public Future<Boolean> sendNotificationEmail(final String address, final long request) {
+        return ifPossible(address, innerAddress -> {
+            logger.debug("Sending mails in thread: " + Thread.currentThread());
+            final String subject = "Nuova notifica da Smart Legal Services";
+            final String text = "È presente una nuova notifica da " + address + " per la prestazione n. " + request;
+            final boolean toUserResult = sendEmail(innerAddress, subject, text);
+            final boolean toAdminResult = sendEmail(adminAddress, subject, text);
+            return new AsyncResult<>(toUserResult && toAdminResult);
+        }, () -> new AsyncResult<>(false));
+    }
+
+    private boolean sendEmail(final String recipient, final String subject, final String text) {
+        final SimpleMailMessage msg = new SimpleMailMessage();
+        msg.setFrom(from);
+        msg.setTo(recipient);
+        msg.setSubject(subject);
+        msg.setText(text);
+        try {
+            mailSender.send(msg);
+            return true;
+        } catch (final MailException e) {
+            logger.error("Cannot send email: ", e);
+            return false;
+        }
+    }
+
+    private <A, B> B ifPossible(final A parameter, final Function<A, B> function, final Supplier<B> orElse) {
         if (mailSender != null) {
             return function.apply(parameter);
         } else {
-            return orElse;
+            return orElse.get();
         }
+    }
+
+    private static String validateEmail(final String email) throws AddressException {
+            InternetAddress emailAddr = new InternetAddress(email);
+            emailAddr.validate();
+            return email;
     }
 }
