@@ -1,6 +1,7 @@
 package application.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.persistence.*;
 import java.util.Set;
@@ -15,7 +16,6 @@ public class User {
     private String cognome;
     private String email;
     private String password;
-    @JsonIgnore
     private boolean isAdmin;
     @JsonIgnore
     @OneToMany(mappedBy = "user")
@@ -69,6 +69,7 @@ public class User {
         this.requiredLegalAssistance = requiredLegalAssistance;
     }
 
+    @JsonProperty("isAdmin")
     public boolean isAdmin() {
         return isAdmin;
     }

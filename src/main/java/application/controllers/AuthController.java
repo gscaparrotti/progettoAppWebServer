@@ -1,11 +1,11 @@
 package application.controllers;
 
-import application.authentication.AuthData;
 import application.entities.User;
 import application.repositories.UserRepository;
-import com.google.gson.Gson;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +18,6 @@ public class AuthController {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final Gson gson = new Gson();
 
     @Autowired
     public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
@@ -27,9 +26,32 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @ResponseStatus(HttpStatus.OK)
-    public boolean login(@RequestBody User user) {
+    public ResponseEntity<AuthResult> login(@RequestBody User user) {
         final Optional<User> optUser = userRepository.findById(user.getCodicefiscale());
-        return optUser.isPresent() && passwordEncoder.matches(user.getPassword(), optUser.get().getPassword());
+        if (optUser.isPresent() && passwordEncoder.matches(user.getPassword(), optUser.get().getPassword())) {
+            if (optUser.get().isAdmin()) {
+                return new ResponseEntity<>(new AuthResult(true), HttpStatus.OK);
+            }
+            return new ResponseEntity<>(new AuthResult(false), HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+    }
+
+    private static class AuthResult {
+
+        private boolean isAdmin;
+
+        AuthResult(boolean isAdmin) {
+            this.isAdmin = isAdmin;
+        }
+
+        @JsonProperty("isAdmin")
+        public boolean isAdmin() {
+            return isAdmin;
+        }
+
+        public void setAdmin(boolean admin) {
+            isAdmin = admin;
+        }
     }
 }

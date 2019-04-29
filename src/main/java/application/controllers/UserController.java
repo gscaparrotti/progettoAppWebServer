@@ -10,6 +10,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedList;
+import java.util.List;
+
 @CrossOrigin
 @RestController
 @RequestMapping({"/api"})
@@ -44,5 +47,13 @@ public class UserController {
         return userRepository.findById(user)
                 .map(value -> new ResponseEntity<>(value, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    @GetMapping("/users")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<List<User>> getAllUsersInfo() {
+        final List<User> users = new LinkedList<>();
+        userRepository.findAll().forEach(users::add);
+        return new ResponseEntity<>(users, HttpStatus.OK);
     }
 }
